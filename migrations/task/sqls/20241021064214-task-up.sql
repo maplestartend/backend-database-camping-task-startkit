@@ -337,7 +337,47 @@ GROUP BY user_id;
     -- from ( 用戶王小明的購買堂數 ) as "CREDIT_PURCHASE"
     -- inner join ( 用戶王小明的已使用堂數) as "COURSE_BOOKING"
     -- on "COURSE_BOOKING".user_id = "CREDIT_PURCHASE".user_id;
-
+SELECT
+  "CREDIT_PURCHASE".user_id,
+  (total - reduce) AS remaining_credit
+FROM
+  (
+    SELECT
+      user_id,
+      SUM(purchased_credits) AS total
+    FROM
+      "CREDIT_PURCHASE"
+    WHERE
+      user_id = (
+        SELECT
+          id
+        FROM
+          "USER"
+        WHERE
+          name = '王小明'
+      )
+    GROUP BY
+      user_id
+  ) AS "CREDIT_PURCHASE"
+  INNER JOIN (
+    SELECT
+      user_id,
+      COUNT(*) AS reduce
+    FROM
+      "COURSE_BOOKING"
+    WHERE
+      user_id = (
+        SELECT
+          id
+        FROM
+          "USER"
+        WHERE
+          name = '王小明'
+      )
+      AND status = '課程已使用'
+    GROUP BY
+      user_id
+  ) AS "COURSE_BOOKING" ON "CREDIT_PURCHASE".user_id = "COURSE_BOOKING".user_id;
 
 -- ████████  █████   █     ███  
 --   █ █   ██    █  █     █     
@@ -394,7 +434,21 @@ group by
   
 -- 6-4. 查詢：計算 11 月份總營收（使用 purchase_at 欄位統計）
 -- 顯示須包含以下欄位： 總營收
+select
+	SUM(price_paid) as "總營收"
+from
+	"CREDIT_PURCHASE"
+where
+	extract(month
+from
+	"CREDIT_PURCHASE".purchase_at) = 11;
 
 
 -- 6-5. 查詢：計算 11 月份有預約課程的會員人數（需使用 Distinct，並用 created_at 和 status 欄位統計）
 -- 顯示須包含以下欄位： 預約會員人數
+select
+  COUNT(DISTINCT user_id) as "總預約"
+from
+  "COURSE_BOOKING"
+where
+	extract(month FROM "COURSE_BOOKING".created_at) = 11 AND status NOT IN ('課程已取消');
